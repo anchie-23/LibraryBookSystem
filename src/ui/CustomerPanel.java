@@ -4,6 +4,12 @@
  * and open the template in the editor.
  */
 
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
 package ui;
 
 import config.DBConnection;
@@ -23,7 +29,7 @@ import javax.swing.table.JTableHeader;
 
 public class CustomerPanel extends javax.swing.JPanel {
    
-   private DefaultTableModel model;
+    private DefaultTableModel model;
     private JTable table;
     private JLabel statusLabel;
     private JLabel welcomeLabel;
@@ -31,8 +37,8 @@ public class CustomerPanel extends javax.swing.JPanel {
     private BookDAO bookDAO;
     private MainFrame frame;
     private Timer refreshTimer;
-private StatisticsDAO statsDAO = new StatisticsDAO();
-private UserDAO userDAO = new UserDAO();
+    private StatisticsDAO statsDAO = new StatisticsDAO();
+    private UserDAO userDAO = new UserDAO();
 
     public CustomerPanel(MainFrame frame) {
         this.frame = frame;
@@ -104,11 +110,14 @@ private UserDAO userDAO = new UserDAO();
         JButton borrowBtn = createStyledButton("Borrow Selected Book", new Color(255, 140, 0), Color.WHITE);
         JButton refreshBtn = createStyledButton("Refresh List", new Color(70, 130, 180), Color.WHITE);
         JButton myBooksBtn = createStyledButton("My Borrowed Books", new Color(147, 112, 219), Color.WHITE);
+        // ADDED: My Profile button to access profile management features
+        JButton myProfileBtn = createStyledButton("👤 My Profile", new Color(100, 149, 237), Color.WHITE);
         JButton logoutBtn = createStyledButton("Logout", new Color(169, 169, 169), Color.WHITE);
         
         buttonPanel.add(borrowBtn);
         buttonPanel.add(refreshBtn);
         buttonPanel.add(myBooksBtn);
+        buttonPanel.add(myProfileBtn);  // ADDED: Profile button
         buttonPanel.add(logoutBtn);
         
         // Stats label
@@ -134,6 +143,7 @@ private UserDAO userDAO = new UserDAO();
         borrowBtn.addActionListener(e -> borrowBook());
         refreshBtn.addActionListener(e -> loadBooks());
         myBooksBtn.addActionListener(e -> showMyBooks());
+        myProfileBtn.addActionListener(e -> showProfileDialog());  // ADDED: Profile button action
         logoutBtn.addActionListener(e -> logout());
         
         // Update stats
@@ -219,7 +229,6 @@ private UserDAO userDAO = new UserDAO();
                 String dueDate = rs.getString("due_date");
                 if (dueDate == null) dueDate = "-";
                 else if ("Borrowed".equals(rs.getString("status"))) {
-                    // Highlight overdue books
                     if (isOverdue(dueDate)) {
                         dueDate = "OVERDUE! " + dueDate;
                     }
@@ -341,7 +350,7 @@ private UserDAO userDAO = new UserDAO();
     }
     
     private void startAutoRefresh() {
-        refreshTimer = new Timer(30000, e -> loadBooks()); // Refresh every 30 seconds
+        refreshTimer = new Timer(30000, e -> loadBooks());
         refreshTimer.start();
     }
     
@@ -359,296 +368,419 @@ private UserDAO userDAO = new UserDAO();
             frame.showPanel("login");
         }
     }
-// Add these methods to CustomerPanel.java
 
-private void showProfileDialog() {
-    JDialog profileDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "My Profile", true);
-    profileDialog.setSize(500, 600);
-    profileDialog.setLocationRelativeTo(this);
-    profileDialog.setLayout(new BorderLayout());
+    // ================= PROFILE MANAGEMENT FEATURES =================
     
-    JTabbedPane profileTabs = new JTabbedPane();
-    profileTabs.addTab("👤 Profile Info", createProfileInfoPanel(profileDialog));
-    profileTabs.addTab("🖼️ Change Avatar", createAvatarSelectionPanel(profileDialog));
-    profileTabs.addTab("📊 My Statistics", createUserStatisticsPanel());
-    profileTabs.addTab("📚 Reading History", createReadingHistoryPanel());
-    
-    profileDialog.add(profileTabs, BorderLayout.CENTER);
-    
-    JButton closeBtn = new JButton("Close");
-    closeBtn.addActionListener(e -> profileDialog.dispose());
-    JPanel btnPanel = new JPanel();
-    btnPanel.add(closeBtn);
-    profileDialog.add(btnPanel, BorderLayout.SOUTH);
-    
-    profileDialog.setVisible(true);
-}
-
-private JPanel createProfileInfoPanel(JDialog dialog) {
-    JPanel panel = new JPanel(new GridBagLayout());
-    panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-    
-    GridBagConstraints gbc = new GridBagConstraints();
-    gbc.insets = new Insets(10, 10, 10, 10);
-    gbc.fill = GridBagConstraints.HORIZONTAL;
-    
-    // Profile Image
-    JLabel profileImageLabel = new JLabel();
-    profileImageLabel.setPreferredSize(new Dimension(100, 100));
-    profileImageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-    if (Session.getProfileImage() != null) {
-        ImageIcon icon = new ImageIcon(Session.getProfileImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH));
-        profileImageLabel.setIcon(icon);
-    } else {
-        profileImageLabel.setText("No Image");
-    }
-    
-    gbc.gridx = 0;
-    gbc.gridy = 0;
-    gbc.gridwidth = 2;
-    panel.add(profileImageLabel, gbc);
-    
-    // Form Fields
-    String[][] fields = {
-        {"Username:", Session.getUsername()},
-        {"Full Name:", Session.getFullName() != null ? Session.getFullName() : ""},
-        {"Email:", Session.getEmail() != null ? Session.getEmail() : ""},
-        {"Phone:", Session.getPhone() != null ? Session.getPhone() : ""},
-        {"Role:", Session.getRole()},
-        {"Member Since:", new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date())}
-    };
-    
-    JTextField fullNameField = new JTextField(20);
-    JTextField emailField = new JTextField(20);
-    JTextField phoneField = new JTextField(20);
-    
-    for (int i = 0; i < fields.length; i++) {
-        gbc.gridy = i + 1;
-        gbc.gridwidth = 1;
-        gbc.gridx = 0;
-        panel.add(new JLabel(fields[i][0]), gbc);
-        gbc.gridx = 1;
+    private void showProfileDialog() {
+        JDialog profileDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "My Profile", true);
+        profileDialog.setSize(500, 600);
+        profileDialog.setLocationRelativeTo(this);
+        profileDialog.setLayout(new BorderLayout());
         
-        if (fields[i][0].equals("Full Name:")) {
-            fullNameField.setText(fields[i][1]);
-            panel.add(fullNameField, gbc);
-        } else if (fields[i][0].equals("Email:")) {
-            emailField.setText(fields[i][1]);
-            panel.add(emailField, gbc);
-        } else if (fields[i][0].equals("Phone:")) {
-            phoneField.setText(fields[i][1]);
-            panel.add(phoneField, gbc);
+        JTabbedPane profileTabs = new JTabbedPane();
+        profileTabs.addTab("👤 Profile Info", createProfileInfoPanel(profileDialog));
+        profileTabs.addTab("🖼️ Change Avatar", createAvatarSelectionPanel(profileDialog));
+        profileTabs.addTab("📊 My Statistics", createUserStatisticsPanel());
+        profileTabs.addTab("📚 Reading History", createReadingHistoryPanel());
+        
+        profileDialog.add(profileTabs, BorderLayout.CENTER);
+        
+        JButton closeBtn = new JButton("Close");
+        closeBtn.addActionListener(e -> profileDialog.dispose());
+        JPanel btnPanel = new JPanel();
+        btnPanel.add(closeBtn);
+        profileDialog.add(btnPanel, BorderLayout.SOUTH);
+        
+        profileDialog.setVisible(true);
+    }
+
+    private JPanel createProfileInfoPanel(JDialog dialog) {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        // Profile Image
+        JLabel profileImageLabel = new JLabel();
+        profileImageLabel.setPreferredSize(new Dimension(100, 100));
+        profileImageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        if (Session.getProfileImage() != null) {
+            ImageIcon icon = new ImageIcon(Session.getProfileImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH));
+            profileImageLabel.setIcon(icon);
         } else {
-            JLabel valueLabel = new JLabel(fields[i][1]);
-            valueLabel.setFont(new Font("Arial", Font.BOLD, 12));
-            panel.add(valueLabel, gbc);
+            profileImageLabel.setText("No Image");
         }
-    }
-    
-    // Save Button
-JButton saveBtn = new JButton("Save Changes");
-saveBtn.setBackground(new Color(60, 179, 113));
-saveBtn.setForeground(Color.WHITE); // Fixed: Changed from "new WHITE()" to "Color.WHITE"
-saveBtn.setFocusPainted(false);
-saveBtn.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-saveBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-saveBtn.addActionListener(e -> {
-    if (userDAO.updateUserProfile(Session.getUserId(), fullNameField.getText(),
-        emailField.getText(), phoneField.getText())) {
-        JOptionPane.showMessageDialog(dialog, "Profile updated successfully!");
-        Session.setFullProfile(Session.getUserId(), Session.getUsername(), Session.getRole(),
-            emailField.getText(), fullNameField.getText(),
-            phoneField.getText(), Session.getProfileImageBase64());
-        dialog.dispose();
-    } else {
-        JOptionPane.showMessageDialog(dialog, "Failed to update profile!", "Error", JOptionPane.ERROR_MESSAGE);
-    }
-});
-    
-    gbc.gridy = fields.length + 1;
-    panel.add(saveBtn, gbc);
-    
-    return panel;
-}
-
-
-private JPanel createAvatarSelectionPanel(JDialog dialog) {
-    JPanel panel = new JPanel(new BorderLayout());
-    panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-    
-    // Predefined avatars
-    String[] avatarColors = {"FF6B6B", "4ECDC4", "45B7D1", "96CEB4", "FFEAA7", "DDA0DD", "98D8C8", "F7DC6F"};
-    String[] avatarNames = {"Red", "Teal", "Blue", "Green", "Yellow", "Purple", "Mint", "Gold"};
-    
-    JPanel avatarsPanel = new JPanel(new GridLayout(2, 4, 15, 15));
-    
-    for (int i = 0; i < avatarColors.length; i++) {
-        JPanel avatarCard = createAvatarCard(avatarColors[i], avatarNames[i], dialog);
-        avatarsPanel.add(avatarCard);
-    }
-    
-    // Upload custom image
-    JPanel uploadPanel = new JPanel();
-    JButton uploadBtn = new JButton("📁 Upload Custom Image");
-    uploadBtn.addActionListener(e -> uploadCustomImage(dialog));
-    uploadPanel.add(uploadBtn);
-    
-    panel.add(avatarsPanel, BorderLayout.CENTER);
-    panel.add(uploadPanel, BorderLayout.SOUTH);
-    
-    return panel;
-}
-
-private JPanel createAvatarCard(String colorHex, String name, JDialog dialog) {
-    JPanel card = new JPanel(new BorderLayout());
-    card.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-    card.setBackground(Color.WHITE);
-    
-    JLabel avatarLabel = new JLabel();
-    avatarLabel.setPreferredSize(new Dimension(80, 80));
-    avatarLabel.setHorizontalAlignment(SwingConstants.CENTER);
-    avatarLabel.setOpaque(true);
-    avatarLabel.setBackground(Color.decode("#" + colorHex));
-    avatarLabel.setText(name.substring(0, 1));
-    avatarLabel.setFont(new Font("Arial", Font.BOLD, 36));
-    avatarLabel.setForeground(Color.WHITE);
-    
-    JLabel nameLabel = new JLabel(name, SwingConstants.CENTER);
-    
-    card.add(avatarLabel, BorderLayout.CENTER);
-    card.add(nameLabel, BorderLayout.SOUTH);
-    
-    card.addMouseListener(new java.awt.event.MouseAdapter() {
-        public void mouseClicked(java.awt.event.MouseEvent evt) {
-            // Create colored avatar image
-            BufferedImage avatar = new BufferedImage(200, 200, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2d = avatar.createGraphics();
-            g2d.setColor(Color.decode("#" + colorHex));
-            g2d.fillOval(0, 0, 200, 200);
-            g2d.setColor(Color.WHITE);
-            g2d.setFont(new Font("Arial", Font.BOLD, 100));
-            FontMetrics fm = g2d.getFontMetrics();
-            String letter = name.substring(0, 1);
-            int x = (200 - fm.stringWidth(letter)) / 2;
-            int y = ((200 - fm.getHeight()) / 2) + fm.getAscent();
-            g2d.drawString(letter, x, y);
-            g2d.dispose();
-            
-            Session.setProfileImage(avatar);
-            JOptionPane.showMessageDialog(dialog, "Avatar updated successfully!");
-            dialog.dispose();
-            refreshProfileDisplay();
-        }
-    });
-    
-    return card;
-}
-
-private void uploadCustomImage(JDialog dialog) {
-    JFileChooser fileChooser = new JFileChooser();
-    fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
-        "Image Files", "jpg", "jpeg", "png", "gif"));
-    
-    if (fileChooser.showOpenDialog(dialog) == JFileChooser.APPROVE_OPTION) {
-        try {
-            BufferedImage image = ImageIO.read(fileChooser.getSelectedFile());
-            // Resize image
-            Image scaledImage = image.getScaledInstance(200, 200, Image.SCALE_SMOOTH);
-            BufferedImage resizedImage = new BufferedImage(200, 200, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2d = resizedImage.createGraphics();
-            g2d.drawImage(scaledImage, 0, 0, null);
-            g2d.dispose();
-            
-            Session.setProfileImage(resizedImage);
-            JOptionPane.showMessageDialog(dialog, "Profile image updated!");
-            dialog.dispose();
-            refreshProfileDisplay();
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(dialog, "Error loading image!");
-        }
-    }
-}
-
-private JPanel createUserStatisticsPanel() {
-    JPanel panel = new JPanel(new GridBagLayout());
-    panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-    
-    GridBagConstraints gbc = new GridBagConstraints();
-    gbc.insets = new Insets(10, 10, 10, 10);
-    gbc.fill = GridBagConstraints.HORIZONTAL;
-    
-    String[][] stats = {
-        {"📚 Total Books Read", String.valueOf(Session.getTotalBooksRead())},
-        {"📖 Currently Borrowed", String.valueOf(Session.getActiveBorrowings())},
-        {"⭐ Average Rating", "4.5/5"},
-        {"🏆 Reading Streak", "15 days"},
-        {"📅 Member Since", "2024"},
-        {"🎯 Completion Rate", "85%"}
-    };
-    
-    for (int i = 0; i < stats.length; i++) {
-        gbc.gridy = i;
-        gbc.gridx = 0;
-        JLabel label = new JLabel(stats[i][0]);
-        label.setFont(new Font("Arial", Font.BOLD, 14));
-        panel.add(label, gbc);
         
-        gbc.gridx = 1;
-        JLabel value = new JLabel(stats[i][1]);
-        value.setFont(new Font("Arial", Font.PLAIN, 14));
-        value.setForeground(new Color(46, 139, 87));
-        panel.add(value, gbc);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        panel.add(profileImageLabel, gbc);
+        
+        // Form Fields
+        String[][] fields = {
+            {"Username:", Session.getUsername()},
+            {"Full Name:", Session.getFullName() != null ? Session.getFullName() : ""},
+            {"Email:", Session.getEmail() != null ? Session.getEmail() : ""},
+            {"Phone:", Session.getPhone() != null ? Session.getPhone() : ""},
+            {"Role:", Session.getRole()},
+            {"Member Since:", new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date())}
+        };
+        
+        JTextField fullNameField = new JTextField(20);
+        JTextField emailField = new JTextField(20);
+        JTextField phoneField = new JTextField(20);
+        
+        for (int i = 0; i < fields.length; i++) {
+            gbc.gridy = i + 1;
+            gbc.gridwidth = 1;
+            gbc.gridx = 0;
+            panel.add(new JLabel(fields[i][0]), gbc);
+            gbc.gridx = 1;
+            
+            if (fields[i][0].equals("Full Name:")) {
+                fullNameField.setText(fields[i][1]);
+                panel.add(fullNameField, gbc);
+            } else if (fields[i][0].equals("Email:")) {
+                emailField.setText(fields[i][1]);
+                panel.add(emailField, gbc);
+            } else if (fields[i][0].equals("Phone:")) {
+                phoneField.setText(fields[i][1]);
+                panel.add(phoneField, gbc);
+            } else {
+                JLabel valueLabel = new JLabel(fields[i][1]);
+                valueLabel.setFont(new Font("Arial", Font.BOLD, 12));
+                panel.add(valueLabel, gbc);
+            }
+        }
+        
+        // Save Button
+        JButton saveBtn = new JButton("Save Changes");
+        saveBtn.setBackground(new Color(60, 179, 113));
+        saveBtn.setForeground(Color.WHITE);
+        saveBtn.setFocusPainted(false);
+        saveBtn.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        saveBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        saveBtn.addActionListener(e -> {
+            if (userDAO.updateUserProfile(Session.getUserId(), fullNameField.getText(),
+                emailField.getText(), phoneField.getText())) {
+                JOptionPane.showMessageDialog(dialog, "Profile updated successfully!");
+                Session.setFullProfile(Session.getUserId(), Session.getUsername(), Session.getRole(),
+                    emailField.getText(), fullNameField.getText(),
+                    phoneField.getText(), Session.getProfileImageBase64());
+                refreshProfileDisplay();
+                dialog.dispose();
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Failed to update profile!", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        
+        gbc.gridy = fields.length + 1;
+        panel.add(saveBtn, gbc);
+        
+        return panel;
+    }
+
+    private JPanel createAvatarSelectionPanel(JDialog dialog) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        // Predefined avatars
+        String[] avatarColors = {"FF6B6B", "4ECDC4", "45B7D1", "96CEB4", "FFEAA7", "DDA0DD", "98D8C8", "F7DC6F"};
+        String[] avatarNames = {"Red", "Teal", "Blue", "Green", "Yellow", "Purple", "Mint", "Gold"};
+        
+        JPanel avatarsPanel = new JPanel(new GridLayout(2, 4, 15, 15));
+        
+        for (int i = 0; i < avatarColors.length; i++) {
+            JPanel avatarCard = createAvatarCard(avatarColors[i], avatarNames[i], dialog);
+            avatarsPanel.add(avatarCard);
+        }
+        
+        // Upload custom image
+        JPanel uploadPanel = new JPanel();
+        JButton uploadBtn = new JButton("📁 Upload Custom Image");
+        uploadBtn.addActionListener(e -> uploadCustomImage(dialog));
+        uploadPanel.add(uploadBtn);
+        
+        panel.add(avatarsPanel, BorderLayout.CENTER);
+        panel.add(uploadPanel, BorderLayout.SOUTH);
+        
+        return panel;
+    }
+
+    private JPanel createAvatarCard(String colorHex, String name, JDialog dialog) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        card.setBackground(Color.WHITE);
+        
+        JLabel avatarLabel = new JLabel();
+        avatarLabel.setPreferredSize(new Dimension(80, 80));
+        avatarLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        avatarLabel.setOpaque(true);
+        avatarLabel.setBackground(Color.decode("#" + colorHex));
+        avatarLabel.setText(name.substring(0, 1));
+        avatarLabel.setFont(new Font("Arial", Font.BOLD, 36));
+        avatarLabel.setForeground(Color.WHITE);
+        
+        JLabel nameLabel = new JLabel(name, SwingConstants.CENTER);
+        
+        card.add(avatarLabel, BorderLayout.CENTER);
+        card.add(nameLabel, BorderLayout.SOUTH);
+        
+        card.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                // Create colored avatar image
+                BufferedImage avatar = new BufferedImage(200, 200, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g2d = avatar.createGraphics();
+                g2d.setColor(Color.decode("#" + colorHex));
+                g2d.fillOval(0, 0, 200, 200);
+                g2d.setColor(Color.WHITE);
+                g2d.setFont(new Font("Arial", Font.BOLD, 100));
+                FontMetrics fm = g2d.getFontMetrics();
+                String letter = name.substring(0, 1);
+                int x = (200 - fm.stringWidth(letter)) / 2;
+                int y = ((200 - fm.getHeight()) / 2) + fm.getAscent();
+                g2d.drawString(letter, x, y);
+                g2d.dispose();
+                
+                Session.setProfileImage(avatar);
+                JOptionPane.showMessageDialog(dialog, "Avatar updated successfully!");
+                refreshProfileDisplay();
+                dialog.dispose();
+            }
+        });
+        
+        return card;
+    }
+
+    private void uploadCustomImage(JDialog dialog) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
+            "Image Files", "jpg", "jpeg", "png", "gif"));
+        
+        if (fileChooser.showOpenDialog(dialog) == JFileChooser.APPROVE_OPTION) {
+            try {
+                BufferedImage image = ImageIO.read(fileChooser.getSelectedFile());
+                Image scaledImage = image.getScaledInstance(200, 200, Image.SCALE_SMOOTH);
+                BufferedImage resizedImage = new BufferedImage(200, 200, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g2d = resizedImage.createGraphics();
+                g2d.drawImage(scaledImage, 0, 0, null);
+                g2d.dispose();
+                
+                Session.setProfileImage(resizedImage);
+                JOptionPane.showMessageDialog(dialog, "Profile image updated!");
+                refreshProfileDisplay();
+                dialog.dispose();
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(dialog, "Error loading image!");
+            }
+        }
+    }
+
+    private JPanel createUserStatisticsPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        String[][] stats = {
+            {"📚 Total Books Read", String.valueOf(Session.getTotalBooksRead())},
+            {"📖 Currently Borrowed", String.valueOf(Session.getActiveBorrowings())},
+            {"⭐ Average Rating", getAverageUserRating()},
+            {"🏆 Reading Streak", getReadingStreak()},
+            {"📅 Member Since", getMemberSinceDate()},
+            {"🎯 Completion Rate", getCompletionRate()}
+        };
+        
+        for (int i = 0; i < stats.length; i++) {
+            gbc.gridy = i;
+            gbc.gridx = 0;
+            JLabel label = new JLabel(stats[i][0]);
+            label.setFont(new Font("Arial", Font.BOLD, 14));
+            panel.add(label, gbc);
+            
+            gbc.gridx = 1;
+            JLabel value = new JLabel(stats[i][1]);
+            value.setFont(new Font("Arial", Font.PLAIN, 14));
+            value.setForeground(new Color(46, 139, 87));
+            panel.add(value, gbc);
+        }
+        
+        // Progress Bar
+        gbc.gridy = stats.length;
+        gbc.gridwidth = 2;
+        panel.add(new JLabel("Reading Progress:"), gbc);
+        
+        gbc.gridy = stats.length + 1;
+        int completionPercent = calculateCompletionPercentage();
+        JProgressBar progressBar = new JProgressBar(0, 100);
+        progressBar.setValue(completionPercent);
+        progressBar.setStringPainted(true);
+        progressBar.setForeground(new Color(46, 139, 87));
+        panel.add(progressBar, gbc);
+        
+        return panel;
     }
     
-    // Progress Bar
-    gbc.gridy = stats.length;
-    gbc.gridwidth = 2;
-    panel.add(new JLabel("Reading Progress:"), gbc);
+    private String getAverageUserRating() {
+        // Calculate average rating from user's reading history
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pst = conn.prepareStatement(
+                 "SELECT AVG(b.rating) FROM borrowing_history bh " +
+                 "JOIN books b ON bh.book_id = b.id " +
+                 "WHERE bh.user_id = ? AND b.rating > 0")) {
+            pst.setInt(1, Session.getUserId());
+            ResultSet rs = pst.executeQuery();
+            if (rs.next() && rs.getDouble(1) > 0) {
+                return String.format("%.1f/5", rs.getDouble(1));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "Not rated yet";
+    }
     
-    gbc.gridy = stats.length + 1;
-    JProgressBar progressBar = new JProgressBar(0, 100);
-    progressBar.setValue(65);
-    progressBar.setStringPainted(true);
-    progressBar.setForeground(new Color(46, 139, 87));
-    panel.add(progressBar, gbc);
+    private String getReadingStreak() {
+        // Simple implementation - can be enhanced based on borrowing history
+        return String.valueOf(Session.getTotalBooksRead()) + " books";
+    }
     
-    return panel;
-}
+    private String getMemberSinceDate() {
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pst = conn.prepareStatement(
+                 "SELECT DATE(created_at) as join_date FROM users WHERE id = ?")) {
+            pst.setInt(1, Session.getUserId());
+            ResultSet rs = pst.executeQuery();
+            if (rs.next() && rs.getString("join_date") != null) {
+                return rs.getString("join_date");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "2024";
+    }
+    
+    private String getCompletionRate() {
+        int totalBorrowed = Session.getTotalBooksRead() + bookDAO.getBorrowedBooks();
+        int returned = Session.getTotalBooksRead();
+        if (totalBorrowed == 0) return "0%";
+        int percentage = (returned * 100) / totalBorrowed;
+        return percentage + "%";
+    }
+    
+    private int calculateCompletionPercentage() {
+        int totalBorrowed = Session.getTotalBooksRead() + bookDAO.getBorrowedBooks();
+        int returned = Session.getTotalBooksRead();
+        if (totalBorrowed == 0) return 0;
+        return (returned * 100) / totalBorrowed;
+    }
 
-private JPanel createReadingHistoryPanel() {
-    JPanel panel = new JPanel(new BorderLayout());
-    panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-    
-    DefaultTableModel historyModel = new DefaultTableModel(
-        new String[]{"Book Title", "Author", "Borrowed Date", "Returned Date", "Rating"}, 0);
-    JTable historyTable = new JTable(historyModel);
-    
-    // Load reading history from database
-    statsDAO.loadUserReadingHistory(Session.getUserId(), historyModel);
-    
-    panel.add(new JScrollPane(historyTable), BorderLayout.CENTER);
-    
-    // Rating panel for returned books
-    JPanel ratingPanel = new JPanel();
-    JButton rateBtn = new JButton("⭐ Rate Books");
-    rateBtn.addActionListener(e -> showRatingDialog());
-    ratingPanel.add(rateBtn);
-    panel.add(ratingPanel, BorderLayout.SOUTH);
-    
-    return panel;
-}
+    private JPanel createReadingHistoryPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        DefaultTableModel historyModel = new DefaultTableModel(
+            new String[]{"Book Title", "Author", "Borrowed Date", "Returned Date", "Rating"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        JTable historyTable = new JTable(historyModel);
+        historyTable.setFont(new Font("Arial", Font.PLAIN, 12));
+        historyTable.setRowHeight(25);
+        
+        // Load reading history from database
+        statsDAO.loadUserReadingHistory(Session.getUserId(), historyModel);
+        
+        panel.add(new JScrollPane(historyTable), BorderLayout.CENTER);
+        
+        // Rating panel for returned books
+        JPanel ratingPanel = new JPanel();
+        JButton rateBtn = new JButton("⭐ Rate Books");
+        rateBtn.addActionListener(e -> showRatingDialog());
+        ratingPanel.add(rateBtn);
+        panel.add(ratingPanel, BorderLayout.SOUTH);
+        
+        return panel;
+    }
 
+    private void showRatingDialog() {
+        // Get unrated books from user's reading history
+        java.util.List<Object[]> unratedBooks = statsDAO.getUnratedBooks(Session.getUserId());
+        
+        if (unratedBooks.isEmpty()) {
+            JOptionPane.showMessageDialog(this, 
+                "No unrated books found! All your returned books have been rated.",
+                "Rate Books",
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        // Create rating dialog
+        JDialog ratingDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Rate Your Books", true);
+        ratingDialog.setSize(450, 350);
+        ratingDialog.setLocationRelativeTo(this);
+        ratingDialog.setLayout(new BorderLayout());
+        
+        DefaultTableModel ratingModel = new DefaultTableModel(
+            new String[]{"Book ID", "Title", "Author", "Rating"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 3;
+            }
+        };
+        
+        for (Object[] book : unratedBooks) {
+            ratingModel.addRow(new Object[]{book[0], book[1], book[2], "Select Rating"});
+        }
+        
+        JTable ratingTable = new JTable(ratingModel);
+        ratingTable.setRowHeight(30);
+        
+        // Combo box editor for ratings
+        String[] ratings = {"Select Rating", "1 - Poor", "2 - Fair", "3 - Good", "4 - Very Good", "5 - Excellent"};
+        JComboBox<String> ratingCombo = new JComboBox<>(ratings);
+        ratingTable.getColumnModel().getColumn(3).setCellEditor(new DefaultCellEditor(ratingCombo));
+        
+        JButton saveRatingsBtn = new JButton("Save Ratings");
+        saveRatingsBtn.addActionListener(e -> {
+            int saved = 0;
+            for (int i = 0; i < ratingModel.getRowCount(); i++) {
+                String ratingValue = (String) ratingModel.getValueAt(i, 3);
+                if (ratingValue != null && !ratingValue.equals("Select Rating")) {
+                    int bookId = (int) ratingModel.getValueAt(i, 0);
+                    double rating = Double.parseDouble(ratingValue.substring(0, 1));
+                    if (statsDAO.updateBookRating(bookId, rating)) {
+                        saved++;
+                    }
+                }
+            }
+            JOptionPane.showMessageDialog(ratingDialog, 
+                saved + " book(s) rated successfully!\nThank you for your feedback!",
+                "Ratings Saved",
+                JOptionPane.INFORMATION_MESSAGE);
+            ratingDialog.dispose();
+            // Refresh the reading history panel
+            refreshProfileDisplay();
+        });
+        
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(saveRatingsBtn);
+        
+        ratingDialog.add(new JScrollPane(ratingTable), BorderLayout.CENTER);
+        ratingDialog.add(buttonPanel, BorderLayout.SOUTH);
+        ratingDialog.setVisible(true);
+    }
 
-private void showRatingDialog() {
-    // Implementation for rating books
-    JOptionPane.showMessageDialog(this, "Rating feature coming soon!");
-}
+    private void refreshProfileDisplay() {
+        welcomeLabel.setText("Welcome, " + Session.getUsername());
+    }
 
-private void refreshProfileDisplay() {
-    welcomeLabel.setText("Welcome, " + Session.getUsername());
-    // Update any other profile displays
-}
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
